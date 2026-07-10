@@ -1,66 +1,118 @@
-const root = document.documentElement;
-try{ const saved = localStorage.getItem('theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
-document.getElementById('themeBtn').addEventListener('click', ()=>{
-  const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  root.setAttribute('data-theme', next);
-  try{ localStorage.setItem('theme', next); }catch(e){}
-});
+/* ============================================================
+   Akash Singh — portfolio scripts
+   theme toggle · typing effect · scroll reveal · mobile menu
+   skill bars · active nav link · footer year · contact form
+   ============================================================ */
 
-const links = document.getElementById('links');
-document.getElementById('burger').addEventListener('click', ()=> links.classList.toggle('open'));
-links.querySelectorAll('a').forEach(a=> a.addEventListener('click', ()=> links.classList.remove('open')));
+/* ---------- Theme toggle (remembers your choice) ---------- */
+(function theme() {
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  const saved = localStorage.getItem('theme');
+  if (saved) root.setAttribute('data-theme', saved);
 
-// Smooth-scroll for every in-page anchor (works even inside embedded previews)
-document.querySelectorAll('a[href^="#"]').forEach(a=>{
-  a.addEventListener('click', (e)=>{
-    const id = a.getAttribute('href');
-    if(id === '#'){ e.preventDefault(); return; }   // CV button: link not added yet
-    const target = document.querySelector(id);
-    if(target){ e.preventDefault(); target.scrollIntoView({behavior:'smooth', block:'start'}); }
+  btn.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
   });
-});
-
-const header = document.getElementById('header');
-window.addEventListener('scroll', ()=> header.classList.toggle('scrolled', window.scrollY > 30));
-
-const roles = ["Data Scientist","Python Developer","Web Developer","Lifelong Learner"];
-const typed = document.querySelector('.typed');
-let ri=0, ci=0, deleting=false;
-(function type(){
-  const word = roles[ri];
-  typed.textContent = deleting ? word.slice(0, ci--) : word.slice(0, ci++);
-  if(!deleting && ci === word.length+1){ deleting=true; setTimeout(type, 1400); return; }
-  if(deleting && ci === 0){ deleting=false; ri=(ri+1)%roles.length; }
-  setTimeout(type, deleting ? 45 : 95);
 })();
 
-const io = new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
+/* ---------- Typing effect in the hero ---------- */
+(function typing() {
+  const el = document.querySelector('.typed');
+  if (!el) return;
+
+  const roles = [
+    'Data Scientist',
+    'ML Engineer',
+    'Computer Vision Enthusiast',
+    'Python Developer'
+  ];
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) { el.textContent = roles[0]; return; }
+
+  let r = 0, i = 0, deleting = false;
+
+  (function tick() {
+    const word = roles[r];
+    el.textContent = deleting ? word.slice(0, --i) : word.slice(0, ++i);
+
+    let wait = deleting ? 40 : 75;
+    if (!deleting && i === word.length) { wait = 1800; deleting = true; }
+    else if (deleting && i === 0) { deleting = false; r = (r + 1) % roles.length; wait = 350; }
+
+    setTimeout(tick, wait);
+  })();
+})();
+
+/* ---------- Scroll reveal + skill bars ---------- */
+(function reveal() {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
       e.target.classList.add('in');
-      e.target.querySelectorAll && e.target.querySelectorAll('.bar i').forEach(b=> b.style.width = b.dataset.w + '%');
+
+      // fill any skill bars inside this block
+      e.target.querySelectorAll('.bar i').forEach(bar => {
+        bar.style.width = bar.dataset.w + '%';
+      });
       io.unobserve(e.target);
-    }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+})();
+
+/* ---------- Sticky nav shadow ---------- */
+(function navScroll() {
+  const header = document.getElementById('header');
+  const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 20);
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+})();
+
+/* ---------- Mobile menu ---------- */
+(function burger() {
+  const btn = document.getElementById('burger');
+  const links = document.getElementById('links');
+
+  btn.addEventListener('click', () => links.classList.toggle('open'));
+  links.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => links.classList.remove('open'));
   });
-},{threshold:.15});
-document.querySelectorAll('.reveal').forEach(el=> io.observe(el));
+})();
 
-const navLinks = [...links.querySelectorAll('a')];
-const sections = navLinks.map(a=> document.querySelector(a.getAttribute('href')));
-window.addEventListener('scroll', ()=>{
-  const y = window.scrollY + 120;
-  sections.forEach((s,i)=>{
-    if(s && s.offsetTop <= y && s.offsetTop + s.offsetHeight > y){
-      navLinks.forEach(l=> l.classList.remove('active'));
-      navLinks[i].classList.add('active');
-    }
+/* ---------- Highlight the section you're reading ---------- */
+(function activeLink() {
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('#links a');
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const id = e.target.id;
+      links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+
+  sections.forEach(s => io.observe(s));
+})();
+
+/* ---------- Contact form ---------- */
+(function contact() {
+  const form = document.getElementById('contactForm');
+  const note = document.getElementById('formNote');
+  if (!form) return;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    note.textContent = '✅ Thanks! Connect this form to Formspree to actually receive messages.';
+    note.style.color = '#22c55e';
+    form.reset();
   });
-});
+})();
 
-document.getElementById('contactForm').addEventListener('submit', (e)=>{
-  e.preventDefault();
-  document.getElementById('formNote').textContent = '✅ Thanks! This is a demo — connect it to Formspree to receive messages for real.';
-  e.target.reset();
-});
-
+/* ---------- Footer year ---------- */
 document.getElementById('year').textContent = new Date().getFullYear();
